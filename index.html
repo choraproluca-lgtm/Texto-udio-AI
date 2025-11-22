@@ -22,13 +22,14 @@
             border-radius: 1.5rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
-        textarea {
+        textarea, input[type="text"], input[type="password"] {
             resize: none;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        textarea:focus {
+        textarea:focus, input:focus {
             border-color: #1e40af;
             box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.25);
+            outline: none;
         }
         /* Estilo para o botão de geração de áudio */
         #generateButton {
@@ -71,6 +72,19 @@
         <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">🎤 Gemini TTS</h1>
         <p class="text-lg text-gray-600 mb-8 text-center">Transforme seu texto em fala natural com o poder da IA.</p>
 
+        <!-- Seção de Chave API (Nova) -->
+        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-6">
+            <label for="apiKeyInput" class="block text-sm font-bold text-yellow-800 mb-2">
+                🔑 Chave de API Gemini
+            </label>
+            <input type="password" id="apiKeyInput"
+                class="w-full p-3 border border-yellow-300 rounded-lg shadow-inner focus:outline-none"
+                placeholder="Cole sua chave de API aqui para desbloquear">
+            <p class="text-xs text-yellow-700 mt-2">
+                O botão "Gerar Áudio" será ativado automaticamente após inserir a chave. Sua chave não será salva.
+            </p>
+        </div>
+
         <!-- Formulário de Entrada -->
         <div class="space-y-6">
             <!-- Texto para Falar -->
@@ -78,9 +92,9 @@
                 <label for="textInput" class="block text-sm font-medium text-gray-700 mb-2">
                     Texto para Geração de Áudio (Máx. 30000 caracteres)
                 </label>
-                <textarea id="textInput" rows="6" maxlength="30000"
-                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none"
-                    placeholder="Digite o texto que você deseja que a voz leia, por exemplo: 'Olá, meu nome é Maria e eu adoro usar inteligência artificial para criar áudios.'"></textarea>
+                <textarea id="textInput" rows="6" maxlength="30000" disabled
+                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-gray-50"
+                    placeholder="Insira sua chave de API acima para digitar o texto."></textarea>
                 <div class="text-right text-xs text-gray-500 mt-1">
                     <span id="charCount">0</span>/30000
                 </div>
@@ -92,8 +106,8 @@
                     <label for="voiceSelect" class="block text-sm font-medium text-gray-700 mb-2">
                         Escolha da Voz
                     </label>
-                    <select id="voiceSelect"
-                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <select id="voiceSelect" disabled
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
                         <option value="Kore" selected>Kore (Firme, clara)</option>
                         <option value="Puck">Puck (Animado, alegre)</option>
                         <option value="Zephyr">Zephyr (Brilhante, otimista)</option>
@@ -108,16 +122,16 @@
                     <label for="toneInput" class="block text-sm font-medium text-gray-700 mb-2">
                         Instrução de Tom/Estilo (Ex: 'Diga alegremente:', 'Com um tom sério:')
                     </label>
-                    <input type="text" id="toneInput"
-                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                    <input type="text" id="toneInput" disabled
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 focus:outline-none focus:border-blue-500"
                         placeholder="Deixe em branco para tom padrão">
                 </div>
             </div>
 
             <!-- Botão de Ação -->
-            <button id="generateButton"
+            <button id="generateButton" disabled
                 class="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-150 ease-in-out">
-                <span id="buttonText">Gerar Áudio</span>
+                <span id="buttonText">Gerar Áudio (Bloqueado)</span>
                 <div id="loader" class="loader hidden"></div>
             </button>
         </div>
@@ -138,12 +152,12 @@
     </div>
 
     <script>
-        // Variáveis globais de ambiente (fornecidas pelo sistema)
+        // Variáveis globais de ambiente (a chave da plataforma não é mais usada diretamente)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const apiKey = ""; // Deixado vazio, a plataforma irá injetar a chave.
         const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
 
         // Elementos UI
+        const apiKeyInput = document.getElementById('apiKeyInput'); // Novo elemento
         const textInput = document.getElementById('textInput');
         const voiceSelect = document.getElementById('voiceSelect');
         const toneInput = document.getElementById('toneInput');
@@ -156,6 +170,51 @@
         const audioPlayer = document.getElementById('audioPlayer');
         const downloadLink = document.getElementById('downloadLink');
 
+        let userApiKey = ''; // Variável para armazenar a chave do usuário
+
+        // --- Funções de Bloqueio e Desbloqueio ---
+        
+        /**
+         * Habilita ou desabilita os controles de entrada e o botão de geração.
+         */
+        function checkApiKeyState() {
+            userApiKey = apiKeyInput.value.trim();
+            const isKeyPresent = userApiKey.length > 5; // Simples verificação de comprimento
+
+            // Habilitar/Desabilitar controles
+            textInput.disabled = !isKeyPresent;
+            voiceSelect.disabled = !isKeyPresent;
+            toneInput.disabled = !isKeyPresent;
+            
+            // Mudar classes para indicar estado visualmente
+            const inputElements = [textInput, voiceSelect, toneInput];
+            inputElements.forEach(el => {
+                el.classList.toggle('bg-gray-50', !isKeyPresent);
+                el.classList.toggle('bg-white', isKeyPresent);
+                el.placeholder = isKeyPresent ? 
+                    "Digite o texto que você deseja que a voz leia..." : 
+                    "Insira sua chave de API acima para digitar o texto.";
+            });
+
+            // Habilitar/Desabilitar o botão de geração
+            if (isKeyPresent && textInput.value.trim().length > 0) {
+                generateButton.disabled = false;
+                buttonText.textContent = "Gerar Áudio";
+            } else {
+                generateButton.disabled = true;
+                buttonText.textContent = isKeyPresent ? "Digite o Texto" : "Gerar Áudio (Bloqueado)";
+            }
+        }
+
+        // Listener para a Chave API e Texto
+        apiKeyInput.addEventListener('input', checkApiKeyState);
+        textInput.addEventListener('input', checkApiKeyState); // Reverifica o estado quando o texto muda
+
+        // Inicializa o estado de bloqueio ao carregar
+        checkApiKeyState(); 
+        
+        // --- Funções de Conversão (Inalteradas) ---
+        
         // Função utilitária para converter Base64 para ArrayBuffer
         function base64ToArrayBuffer(base64) {
             const binaryString = atob(base64);
@@ -169,9 +228,7 @@
 
         /**
          * Converte dados PCM brutos (Signed 16-bit) para um Blob WAV reproduzível.
-         * @param {Int16Array} pcm16 - Dados PCM em Int16Array.
-         * @param {number} sampleRate - Taxa de amostragem do áudio.
-         * @returns {Blob} O Blob contendo o arquivo WAV.
+         * ... (O código pcmToWav permanece o mesmo) ...
          */
         function pcmToWav(pcm16, sampleRate) {
             const numChannels = 1;
@@ -220,18 +277,8 @@
         // Listener para contagem de caracteres
         textInput.addEventListener('input', () => {
             charCount.textContent = textInput.value.length;
-            // Validação simples para desabilitar o botão se o texto estiver vazio
-            if (textInput.value.trim().length === 0) {
-                generateButton.disabled = true;
-            } else {
-                generateButton.disabled = false;
-            }
+            checkApiKeyState(); // Usa a função unificada de verificação
         });
-
-        // Habilita o botão ao carregar se houver texto
-        if (textInput.value.trim().length === 0) {
-            generateButton.disabled = true;
-        }
 
         /**
          * Exibe uma mensagem de status/erro na UI.
@@ -263,6 +310,12 @@
             const rawText = textInput.value.trim();
             const selectedVoice = voiceSelect.value;
             const toneInstruction = toneInput.value.trim();
+            const currentApiKey = apiKeyInput.value.trim(); // Pega a chave inserida
+
+            if (!currentApiKey) {
+                displayMessage("Aviso: Por favor, insira sua Chave de API Gemini para continuar.", 'error');
+                return;
+            }
 
             if (!rawText) {
                 displayMessage("Por favor, insira o texto que você deseja que a voz leia.", 'error');
@@ -308,7 +361,8 @@
                 // Loop com backoff exponencial para lidar com falhas temporárias
                 while (attempts < maxAttempts) {
                     try {
-                        response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                        // ** USO DA CHAVE DO USUÁRIO AQUI **
+                        response = await fetch(`${apiUrl}?key=${currentApiKey}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
@@ -328,6 +382,10 @@
                         } else {
                             // Outro erro HTTP
                             const errorData = await response.json();
+                            // Se for 400/401, a chave de API pode ser inválida
+                            if (response.status >= 400 && response.status < 500) {
+                                throw new Error(`Erro de autenticação ou solicitação: Chave de API inválida ou problema na requisição.`);
+                            }
                             throw new Error(`Erro API: ${response.statusText}. Detalhes: ${JSON.stringify(errorData)}`);
                         }
                     } catch (fetchError) {
@@ -376,22 +434,4 @@
                 downloadLink.href = audioUrl;
                 audioOutput.classList.remove('hidden');
 
-                displayMessage("Áudio gerado com sucesso! Você pode reproduzi-lo ou baixá-lo abaixo.", 'success');
-
-            } catch (error) {
-                console.error("Erro na geração de áudio:", error);
-                displayMessage(`Falha ao gerar o áudio: ${error.message}`, 'error');
-            } finally {
-                // Fim do estado de carregamento
-                generateButton.disabled = false;
-                buttonText.textContent = "Gerar Áudio";
-                loader.classList.add('hidden');
-            }
-        }
-
-        // Event Listener para o botão
-        generateButton.addEventListener('click', generateAudio);
-    </script>
-</body>
-</html>
-
+                displayMessage("Áudio gerado com sucesso! Você p
