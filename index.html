@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini TTS: Gerador de Áudio</title>
+    <title>Els-gekAI: Geração de Áudio e Chat Gemini</title>
     <!-- Carrega Tailwind CSS para estilização moderna e responsiva -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -11,49 +11,51 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8;
-            transition: background-color 0.3s;
+            background-color: #e0f2f7;
+            min-height: 100vh;
         }
         .container-card {
-            max-width: 90%;
+            max-width: 95%;
             margin: 2rem auto;
-            padding: 1.5rem;
+            padding: 1rem;
             background-color: #ffffff;
             border-radius: 1.5rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
-        textarea, input[type="text"], input[type="password"] {
-            resize: none;
+        textarea, input[type="text"], input[type="number"], input[type="password"], select {
             transition: border-color 0.2s, box-shadow 0.2s;
+            border-radius: 0.5rem;
+            resize: none;
         }
-        textarea:focus, input:focus {
-            border-color: #1e40af;
-            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.25);
+        input:focus, textarea:focus, select:focus {
+            border-color: #047857;
+            box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.25);
             outline: none;
         }
-        /* Estilo para o botão de geração de áudio */
-        #generateButton {
+        /* Estilos dos botões */
+        .btn-primary {
             transition: background-color 0.2s, transform 0.1s;
         }
-        #generateButton:hover:not(:disabled) {
-            background-color: #1e40af;
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-1px);
         }
-        #generateButton:disabled {
+        .btn-primary:disabled {
             cursor: not-allowed;
             opacity: 0.6;
         }
-        @media (min-width: 640px) {
-            .container-card {
-                max-width: 768px;
-                padding: 2.5rem;
-            }
+        .tab-btn {
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+        .tab-active {
+            border-bottom: 4px solid #047857;
+            color: #047857;
+            font-weight: 600;
         }
 
         /* Estilo do loader */
         .loader {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #1e40af;
+            border-top: 4px solid #047857;
             border-radius: 50%;
             width: 20px;
             height: 20px;
@@ -64,39 +66,140 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Estilo do Chat */
+        #chatOutput {
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f8fafc;
+        }
+        .message-user {
+            background-color: #d1fae5; /* Verde claro */
+            align-self: flex-end;
+            max-width: 85%;
+        }
+        .message-ai {
+            background-color: #e0f7fa; /* Ciano claro */
+            align-self: flex-start;
+            max-width: 90%;
+        }
     </style>
 </head>
 <body>
 
     <div class="container-card">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">🎤 Gemini TTS</h1>
-        <p class="text-lg text-gray-600 mb-8 text-center">Transforme seu texto em fala natural com o poder da IA.</p>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">⭐ Els-gekAI</h1>
+        <p class="text-lg text-gray-600 mb-6 text-center">Gere áudio, sons e converse com a IA.</p>
 
-        <!-- Seção de Chave API (Nova) -->
-        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-6">
-            <label for="apiKeyInput" class="block text-sm font-bold text-yellow-800 mb-2">
-                🔑 Chave de API Gemini
-            </label>
-            <input type="password" id="apiKeyInput"
-                class="w-full p-3 border border-yellow-300 rounded-lg shadow-inner focus:outline-none"
-                placeholder="Cole sua chave de API aqui para desbloquear">
-            <p class="text-xs text-yellow-700 mt-2">
-                O botão "Gerar Áudio" será ativado automaticamente após inserir a chave. Sua chave não será salva.
-            </p>
+        <!-- Seção de Configuração (Nome e API) -->
+        <div id="configSection" class="p-4 bg-gray-50 border border-gray-200 rounded-xl mb-6 space-y-4">
+            <!-- Nome de Usuário -->
+            <div>
+                <label for="usernameInput" class="block text-sm font-bold text-gray-800 mb-2">
+                    👤 Seu Nome de Usuário
+                </label>
+                <input type="text" id="usernameInput"
+                    class="w-full p-3 border border-gray-300 rounded-lg shadow-inner focus:border-indigo-500"
+                    placeholder="Seu nome (Ex: 'João', 'Maria')">
+            </div>
+
+            <!-- Chave API -->
+            <div>
+                <label for="apiKeyInput" class="block text-sm font-bold text-gray-800 mb-2">
+                    🔑 Chave de API Gemini
+                </label>
+                <input type="password" id="apiKeyInput"
+                    class="w-full p-3 border border-yellow-300 rounded-lg shadow-inner focus:border-yellow-500"
+                    placeholder="Cole sua chave de API aqui para desbloquear as ferramentas">
+                <p class="text-xs text-yellow-700 mt-2">
+                    O nome e a chave são necessários para usar todas as funcionalidades.
+                </p>
+            </div>
         </div>
 
-        <!-- Formulário de Entrada -->
-        <div class="space-y-6">
+        <!-- Navegação por Abas -->
+        <div class="flex border-b border-gray-300 mb-6">
+            <button id="tabSom" data-tab="som"
+                class="tab-btn py-3 px-4 text-gray-600 hover:text-teal-700 tab-active">
+                🔊 Efeitos Sonoros
+            </button>
+            <button id="tabVoz" data-tab="voz"
+                class="tab-btn py-3 px-4 text-gray-600 hover:text-teal-700">
+                🗣️ Texto para Voz (TTS)
+            </button>
+            <button id="tabConversa" data-tab="conversa"
+                class="tab-btn py-3 px-4 text-gray-600 hover:text-teal-700">
+                💬 Conversa
+            </button>
+        </div>
+
+        <!-- Área de Mensagens Global -->
+        <div id="messageBox" class="p-4 rounded-lg hidden" role="alert"></div>
+
+        <!-- CONTEÚDO DA ABA 1: Geração de Efeitos Sonoros -->
+        <div id="contentSom" class="tab-content space-y-6">
+            <h2 class="text-2xl font-semibold text-gray-700">Geração de Efeitos Sonoros</h2>
+            
+            <!-- Descrição do Som -->
+            <div>
+                <label for="descriptionInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    Descrição Detalhada do Efeito Sonoro
+                </label>
+                <textarea id="descriptionInput" rows="4" maxlength="30000" disabled
+                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50"
+                    placeholder="Insira sua chave de API e nome acima para digitar a descrição."></textarea>
+                <div class="text-right text-xs text-gray-500 mt-1">
+                    <span id="somCharCount">0</span>/30000
+                </div>
+            </div>
+
+            <!-- Duração em Segundos -->
+            <div>
+                <label for="durationInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    Duração do Áudio (em segundos)
+                </label>
+                <div class="relative">
+                    <input type="number" id="durationInput" min="1" max="300" value="10" disabled
+                        class="w-full p-3 pr-12 border border-gray-300 rounded-lg shadow-sm text-xl font-bold bg-gray-50"
+                        oninput="validateDuration(this)">
+                    <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold text-sm">SEGUNDOS</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Mínimo: 1s | Máximo: 300s (5 minutos). A geração pode ser lenta.</p>
+            </div>
+
+            <!-- Botão de Ação -->
+            <button id="generateSomButton" disabled
+                class="w-full flex items-center justify-center bg-teal-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg btn-primary">
+                <span id="somButtonText">Gerar Efeito Sonoro (Bloqueado)</span>
+                <div id="somLoader" class="loader hidden"></div>
+            </button>
+            
+            <!-- Player de Áudio -->
+            <div id="somAudioOutput" class="mt-8 pt-4 border-t border-gray-200 hidden">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Áudio Gerado</h3>
+                <audio id="somAudioPlayer" controls class="w-full mb-4 rounded-lg"></audio>
+                <a id="somDownloadLink" href="#" download="som_elsgekAI_fx.mp3"
+                   class="inline-flex items-center bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-green-700 transition duration-150 ease-in-out">
+                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                   Baixar Áudio
+                </a>
+            </div>
+        </div>
+
+        <!-- CONTEÚDO DA ABA 2: Texto para Voz (TTS) -->
+        <div id="contentVoz" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-semibold text-gray-700">Geração de Texto para Voz (TTS)</h2>
+
             <!-- Texto para Falar -->
             <div>
                 <label for="textInput" class="block text-sm font-medium text-gray-700 mb-2">
                     Texto para Geração de Áudio (Máx. 30000 caracteres)
                 </label>
                 <textarea id="textInput" rows="6" maxlength="30000" disabled
-                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none bg-gray-50"
-                    placeholder="Insira sua chave de API acima para digitar o texto."></textarea>
+                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50"
+                    placeholder="Insira sua chave de API e nome acima para digitar o texto."></textarea>
                 <div class="text-right text-xs text-gray-500 mt-1">
-                    <span id="charCount">0</span>/30000
+                    <span id="vozCharCount">0</span>/30000
                 </div>
             </div>
 
@@ -107,7 +210,7 @@
                         Escolha da Voz
                     </label>
                     <select id="voiceSelect" disabled
-                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 focus:ring-blue-500 focus:border-blue-500">
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50">
                         <option value="Kore" selected>Kore (Firme, clara)</option>
                         <option value="Puck">Puck (Animado, alegre)</option>
                         <option value="Zephyr">Zephyr (Brilhante, otimista)</option>
@@ -123,315 +226,183 @@
                         Instrução de Tom/Estilo (Ex: 'Diga alegremente:', 'Com um tom sério:')
                     </label>
                     <input type="text" id="toneInput" disabled
-                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 focus:outline-none focus:border-blue-500"
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50"
                         placeholder="Deixe em branco para tom padrão">
                 </div>
             </div>
 
             <!-- Botão de Ação -->
-            <button id="generateButton" disabled
-                class="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-150 ease-in-out">
-                <span id="buttonText">Gerar Áudio (Bloqueado)</span>
-                <div id="loader" class="loader hidden"></div>
+            <button id="generateVozButton" disabled
+                class="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg btn-primary">
+                <span id="vozButtonText">Gerar Áudio de Voz (Bloqueado)</span>
+                <div id="vozLoader" class="loader hidden"></div>
             </button>
+            
+            <!-- Player de Áudio -->
+            <div id="vozAudioOutput" class="mt-8 pt-4 border-t border-gray-200 hidden">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Áudio Gerado</h3>
+                <audio id="vozAudioPlayer" controls class="w-full mb-4 rounded-lg"></audio>
+                <a id="vozDownloadLink" href="#" download="audio_elsgekAI_tts.wav"
+                   class="inline-flex items-center bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-green-700 transition duration-150 ease-in-out">
+                   <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                   Baixar Áudio (WAV)
+                </a>
+            </div>
         </div>
 
-        <!-- Mensagens e Área de Áudio -->
-        <div id="messageBox" class="mt-6 p-4 rounded-lg hidden" role="alert"></div>
+        <!-- CONTEÚDO DA ABA 3: Conversa e Auxílio de Prompt -->
+        <div id="contentConversa" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-semibold text-gray-700">Assistente de Conversa e Prompt</h2>
+            
+            <!-- Área de Histórico do Chat -->
+            <div id="chatOutput" class="flex flex-col space-y-4 p-4 border border-gray-300 rounded-lg">
+                <!-- Mensagens serão inseridas aqui -->
+            </div>
 
-        <!-- Player de Áudio -->
-        <div id="audioOutput" class="mt-8 pt-4 border-t border-gray-200 hidden">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Áudio Gerado</h3>
-            <audio id="audioPlayer" controls class="w-full mb-4 rounded-lg"></audio>
-            <a id="downloadLink" href="#" download="audio_gemini_tts.wav"
-               class="inline-flex items-center bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-green-700 transition duration-150 ease-in-out">
-               Baixar Áudio (WAV)
-            </a>
-            <p class="text-sm text-gray-500 mt-2">O arquivo é gerado no formato WAV e pode ser reproduzido por qualquer player.</p>
+            <!-- Entrada de Prompt -->
+            <div class="space-y-3">
+                <label for="chatInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    Sua Pergunta / Texto Base
+                </label>
+                <textarea id="chatInput" rows="3" disabled
+                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50"
+                    placeholder="Insira sua chave de API e nome acima para começar a conversar ou digitar um prompt."></textarea>
+            </div>
+            
+            <!-- Botões de Ação para Chat -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="improvePromptButton" disabled
+                    class="flex-1 flex items-center justify-center bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl shadow-lg btn-primary hover:bg-indigo-600">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Melhorar Prompt
+                </button>
+                <button id="sendChatButton" disabled
+                    class="flex-1 flex items-center justify-center bg-teal-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg btn-primary">
+                    <span id="chatButtonText">Enviar / Gerar Texto</span>
+                    <div id="chatLoader" class="loader hidden"></div>
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Variáveis globais de ambiente (a chave da plataforma não é mais usada diretamente)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
-
-        // Elementos UI
-        const apiKeyInput = document.getElementById('apiKeyInput'); // Novo elemento
-        const textInput = document.getElementById('textInput');
-        const voiceSelect = document.getElementById('voiceSelect');
-        const toneInput = document.getElementById('toneInput');
-        const generateButton = document.getElementById('generateButton');
-        const buttonText = document.getElementById('buttonText');
-        const loader = document.getElementById('loader');
-        const charCount = document.getElementById('charCount');
-        const messageBox = document.getElementById('messageBox');
-        const audioOutput = document.getElementById('audioOutput');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const downloadLink = document.getElementById('downloadLink');
-
-        let userApiKey = ''; // Variável para armazenar a chave do usuário
-
-        // --- Funções de Bloqueio e Desbloqueio ---
+        // --- Variáveis Globais e Configurações de API ---
+        const API_URL_SOUND = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent';
+        const API_URL_TTS = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
+        const API_URL_CHAT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent';
         
-        /**
-         * Habilita ou desabilita os controles de entrada e o botão de geração.
-         */
-        function checkApiKeyState() {
-            userApiKey = apiKeyInput.value.trim();
-            const isKeyPresent = userApiKey.length > 5; // Simples verificação de comprimento
-
-            // Habilitar/Desabilitar controles
-            textInput.disabled = !isKeyPresent;
-            voiceSelect.disabled = !isKeyPresent;
-            toneInput.disabled = !isKeyPresent;
-            
-            // Mudar classes para indicar estado visualmente
-            const inputElements = [textInput, voiceSelect, toneInput];
-            inputElements.forEach(el => {
-                el.classList.toggle('bg-gray-50', !isKeyPresent);
-                el.classList.toggle('bg-white', isKeyPresent);
-                el.placeholder = isKeyPresent ? 
-                    "Digite o texto que você deseja que a voz leia..." : 
-                    "Insira sua chave de API acima para digitar o texto.";
-            });
-
-            // Habilitar/Desabilitar o botão de geração
-            if (isKeyPresent && textInput.value.trim().length > 0) {
-                generateButton.disabled = false;
-                buttonText.textContent = "Gerar Áudio";
-            } else {
-                generateButton.disabled = true;
-                buttonText.textContent = isKeyPresent ? "Digite o Texto" : "Gerar Áudio (Bloqueado)";
-            }
-        }
-
-        // Listener para a Chave API e Texto
-        apiKeyInput.addEventListener('input', checkApiKeyState);
-        textInput.addEventListener('input', checkApiKeyState); // Reverifica o estado quando o texto muda
-
-        // Inicializa o estado de bloqueio ao carregar
-        checkApiKeyState(); 
+        let userApiKey = '';
+        let username = '';
+        let chatHistory = [];
+        let currentTab = 'som';
         
-        // --- Funções de Conversão (Inalteradas) ---
-        
-        // Função utilitária para converter Base64 para ArrayBuffer
-        function base64ToArrayBuffer(base64) {
-            const binaryString = atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
+        // Limites
+        const MAX_DURATION = 300;
+        const MIN_DURATION = 1;
+        const MAX_CHAT_RESPONSE_CHARS = 5000;
 
-        /**
-         * Converte dados PCM brutos (Signed 16-bit) para um Blob WAV reproduzível.
-         * ... (O código pcmToWav permanece o mesmo) ...
-         */
-        function pcmToWav(pcm16, sampleRate) {
-            const numChannels = 1;
-            const bitDepth = 16;
-            const buffer = new ArrayBuffer(44 + pcm16.byteLength);
-            const view = new DataView(buffer);
+        // --- Elementos UI ---
+        const ui = {
+            // Configurações Globais
+            apiKeyInput: document.getElementById('apiKeyInput'),
+            usernameInput: document.getElementById('usernameInput'),
+            messageBox: document.getElementById('messageBox'),
 
-            // Funções para escrever partes do cabeçalho
-            function writeString(view, offset, s) {
-                for (let i = 0; i < s.length; i++) {
-                    view.setUint8(offset + i, s.charCodeAt(i));
-                }
-            }
-            function writeUint16(view, offset, i) { view.setUint16(offset, i, true); }
-            function writeUint32(view, offset, i) { view.setUint32(offset, i, true); }
+            // Abas
+            tabSom: document.getElementById('tabSom'),
+            tabVoz: document.getElementById('tabVoz'),
+            tabConversa: document.getElementById('tabConversa'),
+            contentSom: document.getElementById('contentSom'),
+            contentVoz: document.getElementById('contentVoz'),
+            contentConversa: document.getElementById('contentConversa'),
 
-            // 1. RIFF chunk
-            writeString(view, 0, 'RIFF');
-            writeUint32(view, 4, 36 + pcm16.byteLength); // Tamanho total
-            writeString(view, 8, 'WAVE');
+            // Aba Som
+            descriptionInput: document.getElementById('descriptionInput'),
+            durationInput: document.getElementById('durationInput'),
+            generateSomButton: document.getElementById('generateSomButton'),
+            somButtonText: document.getElementById('somButtonText'),
+            somLoader: document.getElementById('somLoader'),
+            somCharCount: document.getElementById('somCharCount'),
+            somAudioOutput: document.getElementById('somAudioOutput'),
+            somAudioPlayer: document.getElementById('somAudioPlayer'),
+            somDownloadLink: document.getElementById('somDownloadLink'),
 
-            // 2. fmt sub-chunk
-            writeString(view, 12, 'fmt ');
-            writeUint32(view, 16, 16); // Tamanho do sub-chunk (16 para PCM)
-            writeUint16(view, 20, 1); // Formato de áudio (1 = PCM)
-            writeUint16(view, 22, numChannels);
-            writeUint32(view, 24, sampleRate);
-            writeUint32(view, 28, sampleRate * numChannels * bitDepth / 8); // Byte rate
-            writeUint16(view, 32, numChannels * bitDepth / 8); // Block align
-            writeUint16(view, 34, bitDepth); // Bits por amostra
+            // Aba Voz
+            textInput: document.getElementById('textInput'),
+            voiceSelect: document.getElementById('voiceSelect'),
+            toneInput: document.getElementById('toneInput'),
+            generateVozButton: document.getElementById('generateVozButton'),
+            vozButtonText: document.getElementById('vozButtonText'),
+            vozLoader: document.getElementById('vozLoader'),
+            vozCharCount: document.getElementById('vozCharCount'),
+            vozAudioOutput: document.getElementById('vozAudioOutput'),
+            vozAudioPlayer: document.getElementById('vozAudioPlayer'),
+            vozDownloadLink: document.getElementById('vozDownloadLink'),
 
-            // 3. data sub-chunk
-            writeString(view, 36, 'data');
-            writeUint32(view, 40, pcm16.byteLength); // Tamanho dos dados
+            // Aba Conversa
+            chatOutput: document.getElementById('chatOutput'),
+            chatInput: document.getElementById('chatInput'),
+            improvePromptButton: document.getElementById('improvePromptButton'),
+            sendChatButton: document.getElementById('sendChatButton'),
+            chatButtonText: document.getElementById('chatButtonText'),
+            chatLoader: document.getElementById('chatLoader'),
+        };
 
-            // Escreve os dados PCM
-            const dataOffset = 44;
-            for (let i = 0; i < pcm16.length; i++) {
-                view.setInt16(dataOffset + i * 2, pcm16[i], true); // true = little-endian
-            }
-
-            return new Blob([buffer], { type: 'audio/wav' });
-        }
-
-
-        // Listener para contagem de caracteres
-        textInput.addEventListener('input', () => {
-            charCount.textContent = textInput.value.length;
-            checkApiKeyState(); // Usa a função unificada de verificação
-        });
+        // --- Funções Auxiliares ---
 
         /**
          * Exibe uma mensagem de status/erro na UI.
-         * @param {string} message - A mensagem a ser exibida.
-         * @param {string} type - O tipo de mensagem ('success', 'error', 'info').
          */
-        function displayMessage(message, type) {
-            messageBox.textContent = message;
-            messageBox.className = "mt-6 p-4 rounded-lg";
+        function displayMessage(message, type, targetElement = ui.messageBox) {
+            targetElement.textContent = message;
+            targetElement.className = "p-4 rounded-lg";
             switch (type) {
                 case 'error':
-                    messageBox.classList.add('bg-red-100', 'text-red-700', 'border', 'border-red-400');
+                    targetElement.classList.add('bg-red-100', 'text-red-700', 'border', 'border-red-400');
                     break;
                 case 'success':
-                    messageBox.classList.add('bg-green-100', 'text-green-700', 'border', 'border-green-400');
+                    targetElement.classList.add('bg-green-100', 'text-green-700', 'border', 'border-green-400');
                     break;
                 case 'info':
                 default:
-                    messageBox.classList.add('bg-blue-100', 'text-blue-700', 'border', 'border-blue-400');
+                    targetElement.classList.add('bg-blue-100', 'text-blue-700', 'border', 'border-blue-400');
                     break;
             }
-            messageBox.classList.remove('hidden');
+            targetElement.classList.remove('hidden');
         }
 
         /**
-         * Função principal para chamar a API TTS.
+         * Executa a chamada à API com backoff exponencial.
+         * @param {string} apiUrl - URL da API.
+         * @param {string} apiKey - Chave da API.
+         * @param {object} payload - Corpo da requisição.
+         * @returns {Promise<object>} Resposta JSON da API.
          */
-        async function generateAudio() {
-            const rawText = textInput.value.trim();
-            const selectedVoice = voiceSelect.value;
-            const toneInstruction = toneInput.value.trim();
-            const currentApiKey = apiKeyInput.value.trim(); // Pega a chave inserida
+        async function fetchWithBackoff(apiUrl, apiKey, payload) {
+            let response;
+            let attempts = 0;
+            const maxAttempts = 5;
+            let delay = 1000;
 
-            if (!currentApiKey) {
-                displayMessage("Aviso: Por favor, insira sua Chave de API Gemini para continuar.", 'error');
-                return;
-            }
+            while (attempts < maxAttempts) {
+                try {
+                    response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-            if (!rawText) {
-                displayMessage("Por favor, insira o texto que você deseja que a voz leia.", 'error');
-                return;
-            }
-
-            // Constrói o prompt: [Instrução de Tom] + [Texto do Usuário]
-            const fullPrompt = toneInstruction
-                ? `${toneInstruction.endsWith(':') ? toneInstruction : toneInstruction + ':'} ${rawText}`
-                : rawText;
-
-            // Esconde a saída e mensagens anteriores
-            audioOutput.classList.add('hidden');
-            messageBox.classList.add('hidden');
-            displayMessage("A geração de áudio pode levar alguns segundos...", 'info');
-
-            // Estado de carregamento
-            generateButton.disabled = true;
-            buttonText.textContent = "Gerando...";
-            loader.classList.remove('hidden');
-
-            try {
-                const payload = {
-                    contents: [{
-                        parts: [{ text: fullPrompt }]
-                    }],
-                    generationConfig: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: {
-                                prebuiltVoiceConfig: { voiceName: selectedVoice }
-                            }
-                        }
-                    },
-                    model: "gemini-2.5-flash-preview-tts"
-                };
-
-                let response;
-                let attempts = 0;
-                const maxAttempts = 5;
-                let delay = 1000;
-
-                // Loop com backoff exponencial para lidar com falhas temporárias
-                while (attempts < maxAttempts) {
-                    try {
-                        // ** USO DA CHAVE DO USUÁRIO AQUI **
-                        response = await fetch(`${apiUrl}?key=${currentApiKey}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (response.ok) {
-                            break; // Sucesso, sai do loop
-                        } else if (response.status === 429) {
-                            // Erro de taxa limitada (Rate limit), tenta novamente
-                            if (attempts < maxAttempts - 1) {
-                                await new Promise(resolve => setTimeout(resolve, delay));
-                                delay *= 2; // Aumenta o atraso
-                                attempts++;
-                            } else {
-                                throw new Error('Limite de taxa excedido. Tente novamente mais tarde.');
-                            }
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429) {
+                        if (attempts < maxAttempts - 1) {
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            delay *= 2;
+                            attempts++;
                         } else {
-                            // Outro erro HTTP
-                            const errorData = await response.json();
-                            // Se for 400/401, a chave de API pode ser inválida
-                            if (response.status >= 400 && response.status < 500) {
-                                throw new Error(`Erro de autenticação ou solicitação: Chave de API inválida ou problema na requisição.`);
-                            }
-                            throw new Error(`Erro API: ${response.statusText}. Detalhes: ${JSON.stringify(errorData)}`);
+                            throw new Error('Limite de taxa excedido. Tente novamente mais tarde.');
                         }
-                    } catch (fetchError) {
-                        if (attempts < maxAttempts - 1 && fetchError.message.includes('Failed to fetch')) {
-                             // Erro de rede, tenta novamente
-                             await new Promise(resolve => setTimeout(resolve, delay));
-                             delay *= 2;
-                             attempts++;
-                        } else {
-                            throw fetchError; // Lança erros que não são de backoff
-                        }
-                    }
-                }
-
-                if (!response || !response.ok) {
-                    throw new Error("Falha ao se comunicar com a API após múltiplas tentativas.");
-                }
-
-                const result = await response.json();
-
-                const part = result?.candidates?.[0]?.content?.parts?.[0];
-                const audioData = part?.inlineData?.data;
-                const mimeType = part?.inlineData?.mimeType;
-
-                if (!audioData || !mimeType || !mimeType.startsWith("audio/L16")) {
-                    console.error("Estrutura de resposta inesperada ou dados de áudio ausentes:", result);
-                    displayMessage("Erro: A API não retornou dados de áudio válidos. Verifique o console para detalhes.", 'error');
-                    return;
-                }
-
-                // Extrai a taxa de amostragem do mimetype (ex: audio/L16;rate=24000)
-                const rateMatch = mimeType.match(/rate=(\d+)/);
-                const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000; // Padrão 24000 Hz
-
-                // Converte Base64 para buffer binário
-                const pcmDataBuffer = base64ToArrayBuffer(audioData);
-                // O API retorna PCM assinado de 16 bits
-                const pcm16 = new Int16Array(pcmDataBuffer);
-
-                // Converte PCM para um Blob WAV reproduzível
-                const wavBlob = pcmToWav(pcm16, sampleRate);
-                const audioUrl = URL.createObjectURL(wavBlob);
-
-                // Atualiza o player de áudio e o link de download
-                audioPlayer.src = audioUrl;
-                downloadLink.href = audioUrl;
-                audioOutput.classList.remove('hidden');
-
-                displayMessage("Áudio gerado com sucesso! Você p
+                    } else {
+                        const errorData = await response.json();
+                        if (response.status >= 400 && response.status < 500) {
+                            throw new Error(`Err
