@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini TTS: Gerador de Áudio</title>
+    <!-- Carrega Tailwind CSS para estilização moderna e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define a fonte Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            transition: background-color 0.3s;
+        }
+        .container-card {
+            max-width: 90%;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+        textarea {
+            resize: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        textarea:focus {
+            border-color: #1e40af;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.25);
+        }
+        /* Estilo para o botão de geração de áudio */
+        #generateButton {
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        #generateButton:hover:not(:disabled) {
+            background-color: #1e40af;
+            transform: translateY(-1px);
+        }
+        #generateButton:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        @media (min-width: 640px) {
+            .container-card {
+                max-width: 768px;
+                padding: 2.5rem;
+            }
+        }
+
+        /* Estilo do loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1e40af;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-card">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2 text-center">🎤 Gemini TTS</h1>
+        <p class="text-lg text-gray-600 mb-8 text-center">Transforme seu texto em fala natural com o poder da IA.</p>
+
+        <!-- Formulário de Entrada -->
+        <div class="space-y-6">
+            <!-- Texto para Falar -->
+            <div>
+                <label for="textInput" class="block text-sm font-medium text-gray-700 mb-2">
+                    Texto para Geração de Áudio (Máx. 30000 caracteres)
+                </label>
+                <textarea id="textInput" rows="6" maxlength="30000"
+                    class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none"
+                    placeholder="Digite o texto que você deseja que a voz leia, por exemplo: 'Olá, meu nome é Maria e eu adoro usar inteligência artificial para criar áudios.'"></textarea>
+                <div class="text-right text-xs text-gray-500 mt-1">
+                    <span id="charCount">0</span>/30000
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Seleção de Voz -->
+                <div>
+                    <label for="voiceSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                        Escolha da Voz
+                    </label>
+                    <select id="voiceSelect"
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="Kore" selected>Kore (Firme, clara)</option>
+                        <option value="Puck">Puck (Animado, alegre)</option>
+                        <option value="Zephyr">Zephyr (Brilhante, otimista)</option>
+                        <option value="Charon">Charon (Informativo, formal)</option>
+                        <option value="Leda">Leda (Jovial, amigável)</option>
+                        <option value="Autonoe">Autonoe (Brilhante, suave)</option>
+                    </select>
+                </div>
+
+                <!-- Instrução de Tom/Estilo -->
+                <div>
+                    <label for="toneInput" class="block text-sm font-medium text-gray-700 mb-2">
+                        Instrução de Tom/Estilo (Ex: 'Diga alegremente:', 'Com um tom sério:')
+                    </label>
+                    <input type="text" id="toneInput"
+                        class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:border-blue-500"
+                        placeholder="Deixe em branco para tom padrão">
+                </div>
+            </div>
+
+            <!-- Botão de Ação -->
+            <button id="generateButton"
+                class="w-full flex items-center justify-center bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-150 ease-in-out">
+                <span id="buttonText">Gerar Áudio</span>
+                <div id="loader" class="loader hidden"></div>
+            </button>
+        </div>
+
+        <!-- Mensagens e Área de Áudio -->
+        <div id="messageBox" class="mt-6 p-4 rounded-lg hidden" role="alert"></div>
+
+        <!-- Player de Áudio -->
+        <div id="audioOutput" class="mt-8 pt-4 border-t border-gray-200 hidden">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Áudio Gerado</h3>
+            <audio id="audioPlayer" controls class="w-full mb-4 rounded-lg"></audio>
+            <a id="downloadLink" href="#" download="audio_gemini_tts.wav"
+               class="inline-flex items-center bg-green-600 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-green-700 transition duration-150 ease-in-out">
+               Baixar Áudio (WAV)
+            </a>
+            <p class="text-sm text-gray-500 mt-2">O arquivo é gerado no formato WAV e pode ser reproduzido por qualquer player.</p>
+        </div>
+    </div>
+
+    <script>
+        // Variáveis globais de ambiente (fornecidas pelo sistema)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const apiKey = ""; // Deixado vazio, a plataforma irá injetar a chave.
+        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
+
+        // Elementos UI
+        const textInput = document.getElementById('textInput');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const toneInput = document.getElementById('toneInput');
+        const generateButton = document.getElementById('generateButton');
+        const buttonText = document.getElementById('buttonText');
+        const loader = document.getElementById('loader');
+        const charCount = document.getElementById('charCount');
+        const messageBox = document.getElementById('messageBox');
+        const audioOutput = document.getElementById('audioOutput');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // Função utilitária para converter Base64 para ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        /**
+         * Converte dados PCM brutos (Signed 16-bit) para um Blob WAV reproduzível.
+         * @param {Int16Array} pcm16 - Dados PCM em Int16Array.
+         * @param {number} sampleRate - Taxa de amostragem do áudio.
+         * @returns {Blob} O Blob contendo o arquivo WAV.
+         */
+        function pcmToWav(pcm16, sampleRate) {
+            const numChannels = 1;
+            const bitDepth = 16;
+            const buffer = new ArrayBuffer(44 + pcm16.byteLength);
+            const view = new DataView(buffer);
+
+            // Funções para escrever partes do cabeçalho
+            function writeString(view, offset, s) {
+                for (let i = 0; i < s.length; i++) {
+                    view.setUint8(offset + i, s.charCodeAt(i));
+                }
+            }
+            function writeUint16(view, offset, i) { view.setUint16(offset, i, true); }
+            function writeUint32(view, offset, i) { view.setUint32(offset, i, true); }
+
+            // 1. RIFF chunk
+            writeString(view, 0, 'RIFF');
+            writeUint32(view, 4, 36 + pcm16.byteLength); // Tamanho total
+            writeString(view, 8, 'WAVE');
+
+            // 2. fmt sub-chunk
+            writeString(view, 12, 'fmt ');
+            writeUint32(view, 16, 16); // Tamanho do sub-chunk (16 para PCM)
+            writeUint16(view, 20, 1); // Formato de áudio (1 = PCM)
+            writeUint16(view, 22, numChannels);
+            writeUint32(view, 24, sampleRate);
+            writeUint32(view, 28, sampleRate * numChannels * bitDepth / 8); // Byte rate
+            writeUint16(view, 32, numChannels * bitDepth / 8); // Block align
+            writeUint16(view, 34, bitDepth); // Bits por amostra
+
+            // 3. data sub-chunk
+            writeString(view, 36, 'data');
+            writeUint32(view, 40, pcm16.byteLength); // Tamanho dos dados
+
+            // Escreve os dados PCM
+            const dataOffset = 44;
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(dataOffset + i * 2, pcm16[i], true); // true = little-endian
+            }
+
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+
+
+        // Listener para contagem de caracteres
+        textInput.addEventListener('input', () => {
+            charCount.textContent = textInput.value.length;
+            // Validação simples para desabilitar o botão se o texto estiver vazio
+            if (textInput.value.trim().length === 0) {
+                generateButton.disabled = true;
+            } else {
+                generateButton.disabled = false;
+            }
+        });
+
+        // Habilita o botão ao carregar se houver texto
+        if (textInput.value.trim().length === 0) {
+            generateButton.disabled = true;
+        }
+
+        /**
+         * Exibe uma mensagem de status/erro na UI.
+         * @param {string} message - A mensagem a ser exibida.
+         * @param {string} type - O tipo de mensagem ('success', 'error', 'info').
+         */
+        function displayMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = "mt-6 p-4 rounded-lg";
+            switch (type) {
+                case 'error':
+                    messageBox.classList.add('bg-red-100', 'text-red-700', 'border', 'border-red-400');
+                    break;
+                case 'success':
+                    messageBox.classList.add('bg-green-100', 'text-green-700', 'border', 'border-green-400');
+                    break;
+                case 'info':
+                default:
+                    messageBox.classList.add('bg-blue-100', 'text-blue-700', 'border', 'border-blue-400');
+                    break;
+            }
+            messageBox.classList.remove('hidden');
+        }
+
+        /**
+         * Função principal para chamar a API TTS.
+         */
+        async function generateAudio() {
+            const rawText = textInput.value.trim();
+            const selectedVoice = voiceSelect.value;
+            const toneInstruction = toneInput.value.trim();
+
+            if (!rawText) {
+                displayMessage("Por favor, insira o texto que você deseja que a voz leia.", 'error');
+                return;
+            }
+
+            // Constrói o prompt: [Instrução de Tom] + [Texto do Usuário]
+            const fullPrompt = toneInstruction
+                ? `${toneInstruction.endsWith(':') ? toneInstruction : toneInstruction + ':'} ${rawText}`
+                : rawText;
+
+            // Esconde a saída e mensagens anteriores
+            audioOutput.classList.add('hidden');
+            messageBox.classList.add('hidden');
+            displayMessage("A geração de áudio pode levar alguns segundos...", 'info');
+
+            // Estado de carregamento
+            generateButton.disabled = true;
+            buttonText.textContent = "Gerando...";
+            loader.classList.remove('hidden');
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: fullPrompt }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: selectedVoice }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                let response;
+                let attempts = 0;
+                const maxAttempts = 5;
+                let delay = 1000;
+
+                // Loop com backoff exponencial para lidar com falhas temporárias
+                while (attempts < maxAttempts) {
+                    try {
+                        response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (response.ok) {
+                            break; // Sucesso, sai do loop
+                        } else if (response.status === 429) {
+                            // Erro de taxa limitada (Rate limit), tenta novamente
+                            if (attempts < maxAttempts - 1) {
+                                await new Promise(resolve => setTimeout(resolve, delay));
+                                delay *= 2; // Aumenta o atraso
+                                attempts++;
+                            } else {
+                                throw new Error('Limite de taxa excedido. Tente novamente mais tarde.');
+                            }
+                        } else {
+                            // Outro erro HTTP
+                            const errorData = await response.json();
+                            throw new Error(`Erro API: ${response.statusText}. Detalhes: ${JSON.stringify(errorData)}`);
+                        }
+                    } catch (fetchError) {
+                        if (attempts < maxAttempts - 1 && fetchError.message.includes('Failed to fetch')) {
+                             // Erro de rede, tenta novamente
+                             await new Promise(resolve => setTimeout(resolve, delay));
+                             delay *= 2;
+                             attempts++;
+                        } else {
+                            throw fetchError; // Lança erros que não são de backoff
+                        }
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    throw new Error("Falha ao se comunicar com a API após múltiplas tentativas.");
+                }
+
+                const result = await response.json();
+
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (!audioData || !mimeType || !mimeType.startsWith("audio/L16")) {
+                    console.error("Estrutura de resposta inesperada ou dados de áudio ausentes:", result);
+                    displayMessage("Erro: A API não retornou dados de áudio válidos. Verifique o console para detalhes.", 'error');
+                    return;
+                }
+
+                // Extrai a taxa de amostragem do mimetype (ex: audio/L16;rate=24000)
+                const rateMatch = mimeType.match(/rate=(\d+)/);
+                const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000; // Padrão 24000 Hz
+
+                // Converte Base64 para buffer binário
+                const pcmDataBuffer = base64ToArrayBuffer(audioData);
+                // O API retorna PCM assinado de 16 bits
+                const pcm16 = new Int16Array(pcmDataBuffer);
+
+                // Converte PCM para um Blob WAV reproduzível
+                const wavBlob = pcmToWav(pcm16, sampleRate);
+                const audioUrl = URL.createObjectURL(wavBlob);
+
+                // Atualiza o player de áudio e o link de download
+                audioPlayer.src = audioUrl;
+                downloadLink.href = audioUrl;
+                audioOutput.classList.remove('hidden');
+
+                displayMessage("Áudio gerado com sucesso! Você pode reproduzi-lo ou baixá-lo abaixo.", 'success');
+
+            } catch (error) {
+                console.error("Erro na geração de áudio:", error);
+                displayMessage(`Falha ao gerar o áudio: ${error.message}`, 'error');
+            } finally {
+                // Fim do estado de carregamento
+                generateButton.disabled = false;
+                buttonText.textContent = "Gerar Áudio";
+                loader.classList.add('hidden');
+            }
+        }
+
+        // Event Listener para o botão
+        generateButton.addEventListener('click', generateAudio);
+    </script>
+</body>
+</html>
+
